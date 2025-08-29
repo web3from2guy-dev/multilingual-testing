@@ -1,0 +1,1367 @@
+I've updated the application to include a language translation feature, allowing users to switch the entire app's text to a different language. A language selector dropdown has been added to the top of each page.
+
+This feature works by using a JavaScript-based localization method. The application now uses a dedicated translation object to store all user-facing text in different languages. When a user selects a language, the script automatically updates all visible text elements, including titles, buttons, and placeholder text, to the chosen language.
+
+This implementation is scalable and you can easily add more languages by simply adding a new entry to the translation object in the script.
+
+Here is the updated code:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Food Spot App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* General body styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark slate background */
+            color: #e2e8f0; /* Light gray text */
+        }
+        /* Main container styling */
+        .container {
+            max-width: 1200px; /* Increased max-width for better layout */
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+        /* Kiosk menu item card styling */
+        .menu-item-card {
+            background-color: #2d3748; /* Darker gray for cards */
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease-in-out;
+        }
+        .menu-item-card:hover {
+            transform: translateY(-5px);
+        }
+        /* Modal and modal content styling */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 100; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0, 0, 0, 0.7); /* Black w/ opacity */
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #2d3748;
+            margin: auto;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        .close-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #cbd5e0;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .close-button:hover {
+            color: #e2e8f0;
+        }
+        .copy-button {
+            background-color: #48bb78; /* Green-500 */
+            color: #1a202c;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .copy-button:hover {
+            background-color: #38a169; /* Green-600 */
+        }
+        .payment-link {
+            background-color: #4c51bf; /* Indigo-600 or similar for contrast */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s ease-in-out;
+            margin-top: 0.5rem;
+            width: 100%; /* Full width for block display */
+            text-align: center;
+        }
+        .payment-link:hover {
+            background-color: #3e4299;
+        }
+        /* Back button styling */
+        .back-btn {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            background-color: #4a5568; /* Gray-700 */
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            transition: background-color 0.2s ease-in-out;
+            z-index: 10;
+        }
+        .back-btn:hover {
+            background-color: #2d3748; /* Gray-800 */
+        }
+        /* Admin dashboard column styling */
+        .admin-column {
+            background-color: #2d3748;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .admin-column h3 {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #cbd5e0;
+            border-bottom: 1px solid #4a5568;
+            padding-bottom: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        /* Admin order card styling */
+        .admin-order-card {
+            background-color: #4a5568;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .admin-order-card .order-items-list {
+            list-style: none;
+            padding-left: 0;
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            color: #a0aec0;
+        }
+        .admin-order-card .order-items-list li {
+            margin-bottom: 0.25rem;
+        }
+        /* Admin button styling for statuses */
+        .admin-order-card .status-buttons button {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.75rem;
+            border-radius: 0.375rem;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .admin-order-card .status-buttons .btn-in-progress {
+            background-color: #f6ad55; /* Orange */
+            color: #2d3748;
+        }
+        .admin-order-card .status-buttons .btn-in-progress:hover {
+            background-color: #ed8936;
+        }
+        .admin-order-card .status-buttons .btn-completed {
+            background-color: #48bb78; /* Green */
+            color: #2d3748;
+        }
+        .admin-order-card .status-buttons .btn-completed:hover {
+            background-color: #38a169;
+        }
+        .admin-order-card .status-buttons .btn-revert {
+            background-color: #a0aec0; /* Gray */
+            color: #2d3748;
+        }
+        .admin-order-card .status-buttons .btn-revert:hover {
+            background-color: #718096;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen flex items-center justify-center">
+
+    <div id="app-container" class="min-h-screen w-full flex flex-col">
+
+        <div id="start-page" class="flex-1 flex flex-col items-center justify-center text-center p-4">
+            <div class="container text-center p-8 bg-gray-800 rounded-2xl shadow-2xl max-w-lg mx-auto">
+                <div class="flex justify-end mb-4">
+                    <select id="language-selector-start" class="p-2 bg-gray-700 text-white rounded-md">
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                        <option value="fr">Français</option>
+                    </select>
+                </div>
+                <h1 id="start-page-title" class="text-5xl font-extrabold text-yellow-400 mb-8" data-i18n-key="startPageTitle">Welcome to The Food Spot App!</h1>
+                <p class="text-gray-300 text-xl mb-10" data-i18n-key="startPagePrompt">Please choose your role to continue:</p>
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-6 justify-center">
+                    <button id="show-kiosk-btn" class="px-8 py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 transition-transform duration-300 transform hover:scale-105 text-lg">
+                        <i class="fas fa-utensils mr-2"></i> <span data-i18n-key="customerKioskButton">Customer Kiosk</span>
+                    </button>
+                    <button id="show-admin-btn" class="px-8 py-4 bg-purple-600 text-white font-bold rounded-xl shadow-lg hover:bg-purple-700 transition-transform duration-300 transform hover:scale-105 text-lg">
+                        <i class="fas fa-user-shield mr-2"></i> <span data-i18n-key="adminDashboardButton">Admin Dashboard</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="food-kiosk-page" class="flex-1 hidden relative">
+            <div class="absolute top-4 right-4 z-20">
+                <select id="language-selector-kiosk" class="p-2 bg-gray-700 text-white rounded-md">
+                    <option value="en">English</option>
+                    <option value="es">Español</option>
+                    <option value="fr">Français</option>
+                </select>
+            </div>
+            <button id="back-to-start-kiosk-btn" class="back-btn"><i class="fas fa-arrow-left mr-2"></i> <span data-i18n-key="backToStart">Back to Start</span></button>
+            <header class="bg-gray-800 py-6 shadow-lg">
+                <div class="container text-center">
+                    <h1 id="kiosk-title" class="text-4xl font-extrabold text-yellow-400">The Food Spot</h1>
+                    <p id="kiosk-tagline" class="text-gray-400 text-lg mt-2">Fresh, Fast, and Delicious!</p>
+                </div>
+            </header>
+            <main class="container mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <section class="lg:col-span-2">
+                    <h2 id="kiosk-menu-title" class="text-3xl font-bold text-indigo-400 mb-6 text-center lg:text-left" data-i18n-key="kioskMenuTitle">Our Delicious Menu</h2>
+                    <div id="menu-items-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        </div>
+                </section>
+                <aside class="lg:col-span-1 bg-gray-800 p-6 rounded-xl shadow-lg h-fit sticky top-8">
+                    <h2 class="text-3xl font-bold text-green-400 mb-6 text-center" data-i18n-key="yourOrderTitle">Your Order</h2>
+                    <div id="order-list" class="space-y-4 mb-6 min-h-[100px]">
+                        <p id="empty-cart-message" class="text-gray-500 text-center" data-i18n-key="emptyCartMessage">Your cart is empty. Add some delicious items!</p>
+                    </div>
+                    <div class="border-t border-gray-700 pt-4 mt-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="text-xl font-bold text-gray-300" data-i18n-key="totalLabel">Total:</span>
+                            <span id="order-total" class="text-3xl font-extrabold text-yellow-300">$0.00</span>
+                        </div>
+                        <button id="complete-order-btn" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" data-i18n-key="completeOrderButton">
+                            Complete Order
+                        </button>
+                    </div>
+                </aside>
+            </main>
+            <footer class="bg-gray-800 py-6 mt-auto text-center text-gray-400">
+                <p>&copy; 2025 <span id="footer-text-name">The Food Spot</span>. <span data-i18n-key="footerRights">All rights reserved.</span></p>
+            </footer>
+        </div>
+        
+        <div id="order-menu-page" class="hidden flex-1 flex flex-col items-center justify-center p-4">
+            <div class="container text-center p-8 bg-gray-800 rounded-2xl shadow-2xl max-w-lg mx-auto">
+                <h1 class="text-4xl font-extrabold text-yellow-400 mb-4" data-i18n-key="orderPlacedTitle">Order Placed!</h1>
+                <p class="text-xl text-gray-300 mb-6" data-i18n-key="orderPlacedPrompt">Your order has been sent to the kitchen. Please choose a payment provider below.</p>
+                <div id="payment-providers-container" class="grid grid-cols-1 gap-4 mb-6">
+                    </div>
+                <div id="payment-link-container" class="text-center mt-6 hidden">
+                    <p class="text-gray-400 mb-2" data-i18n-key="paymentLinkPrompt">Use the button below to pay for your order:</p>
+                    <a id="payment-link" href="#" target="_blank" class="payment-link flex items-center justify-center gap-2">
+                        <i class="fas fa-external-link-alt"></i>
+                        <span data-i18n-key="goToPaymentButton">Go to Payment</span>
+                    </a>
+                </div>
+                <button id="start-new-order-btn" class="mt-8 px-6 py-3 bg-green-500 text-white font-bold rounded-lg shadow-md hover:bg-green-600 transition-colors" data-i18n-key="startNewOrderButton">
+                    Start a New Order
+                </button>
+            </div>
+        </div>
+
+        <div id="admin-dashboard-page" class="flex-1 hidden flex flex-col p-4">
+            <div class="container bg-gray-800 p-8 rounded-2xl shadow-2xl w-full mx-auto">
+                <div class="flex justify-end mb-4">
+                    <select id="language-selector-admin" class="p-2 bg-gray-700 text-white rounded-md">
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                        <option value="fr">Français</option>
+                    </select>
+                </div>
+                <button id="back-to-start-admin-btn" class="back-btn mb-6"><i class="fas fa-arrow-left mr-2"></i> <span data-i18n-key="backToStart">Back to Start</span></button>
+                <h1 class="text-4xl font-extrabold text-purple-400 mb-6 text-center" data-i18n-key="adminDashboardTitle">Admin Dashboard</h1>
+                
+                <div id="admin-login-section" class="text-center mb-8">
+                    <p class="text-gray-300 text-lg mb-4" data-i18n-key="adminPinPrompt">Enter PIN to access the Admin Dashboard:</p>
+                    <input type="password" id="admin-pin-input" class="w-full max-w-xs p-3 rounded-lg bg-gray-700 border border-gray-600 text-white text-center focus:outline-none focus:ring-2 focus:ring-purple-500 mb-4" data-i18n-placeholder-key="adminPinPlaceholder" placeholder="15-digit PIN">
+                    <button id="admin-login-submit-btn" class="px-6 py-3 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition-colors" data-i18n-key="loginButton">
+                        Login
+                    </button>
+                    <p id="admin-login-message" class="text-red-400 mt-4 hidden" data-i18n-key="incorrectPinMessage">Incorrect PIN. Please try again.</p>
+                </div>
+
+                <div id="admin-dashboard-content" class="hidden">
+
+                    <div class="bg-gray-700 p-6 rounded-xl shadow-lg mb-8">
+                        <h2 class="text-3xl font-bold text-yellow-400 mb-4 text-center" data-i18n-key="storeTextManagementTitle">Store Text Management</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label for="store-title-input" class="block text-sm font-medium text-gray-400 mb-1" data-i18n-key="storeTitleLabel">Store Title</label>
+                                <input type="text" id="store-title-input" class="w-full p-2 rounded bg-gray-600 border border-gray-500 text-white" data-i18n-placeholder-key="storeTitlePlaceholder" placeholder="e.g., The Food Spot">
+                            </div>
+                            <div>
+                                <label for="store-tagline-input" class="block text-sm font-medium text-gray-400 mb-1" data-i18n-key="taglineLabel">Tagline</label>
+                                <input type="text" id="store-tagline-input" class="w-full p-2 rounded bg-gray-600 border border-gray-500 text-white" data-i18n-placeholder-key="taglinePlaceholder" placeholder="e.g., Fresh, Fast, Delicious!">
+                            </div>
+                            <div>
+                                <label for="menu-title-input" class="block text-sm font-medium text-gray-400 mb-1" data-i18n-key="menuTitleLabel">Menu Title</label>
+                                <input type="text" id="menu-title-input" class="w-full p-2 rounded bg-gray-600 border border-gray-500 text-white" data-i18n-placeholder-key="menuTitlePlaceholder" placeholder="e.g., Our Delicious Menu">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-700 p-6 rounded-xl shadow-lg mb-8">
+                        <h2 class="text-3xl font-bold text-yellow-400 mb-4 text-center" data-i18n-key="menuManagementTitle">Menu Management</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-gray-600 p-4 rounded-lg">
+                                <h3 id="item-form-title" class="text-xl font-bold mb-3 text-center border-b border-gray-500 pb-2" data-i18n-key="addMenuItemTitle">Add New Menu Item</h3>
+                                <div class="space-y-4">
+                                    <input type="text" id="item-id" class="hidden">
+                                    <input type="text" id="item-name" data-i18n-placeholder-key="itemNamePlaceholder" placeholder="Item Name" class="w-full p-2 rounded bg-gray-700 border border-gray-500 text-white" required>
+                                    <input type="number" id="item-price" data-i18n-placeholder-key="itemPricePlaceholder" placeholder="Price (e.g., 9.99)" step="0.01" min="0" class="w-full p-2 rounded bg-gray-700 border border-gray-500 text-white" required>
+                                    <textarea id="item-description" data-i18n-placeholder-key="itemDescriptionPlaceholder" placeholder="Description" rows="3" class="w-full p-2 rounded bg-gray-700 border border-gray-500 text-white" required></textarea>
+                                    
+                                    <div class="space-y-2">
+                                        <p class="text-sm font-medium text-gray-400" data-i18n-key="addImagePrompt">Add an image:</p>
+                                        <div>
+                                            <label for="item-image-file" class="block text-xs font-medium text-gray-400 mb-1" data-i18n-key="uploadImageLabel">Upload an image (PNG/JPG):</label>
+                                            <input type="file" id="item-image-file" accept=".png, .jpg, .jpeg" class="w-full text-sm text-gray-400
+                                                file:mr-4 file:py-2 file:px-4
+                                                file:rounded-full file:border-0
+                                                file:text-sm file:font-semibold
+                                                file:bg-violet-50 file:text-violet-700
+                                                hover:file:bg-violet-100
+                                            ">
+                                        </div>
+                                        <div class="text-center text-gray-500 text-sm" data-i18n-key="orSeparator">-- OR --</div>
+                                        <div>
+                                            <label for="item-image-url" class="block text-xs font-medium text-gray-400 mb-1" data-i18n-key="imageUrlLabel">Enter an image URL:</label>
+                                            <input type="url" id="item-image-url" data-i18n-placeholder-key="imageUrlPlaceholder" placeholder="e.g., https://placehold.co/..." class="w-full p-2 rounded bg-gray-700 border border-gray-500 text-white">
+                                        </div>
+                                        <div id="image-preview" class="mt-4 hidden">
+                                            <img src="" class="max-w-full h-auto rounded-lg shadow-md mx-auto" alt="Image Preview">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex gap-2">
+                                        <button id="save-item-btn" class="w-full py-3 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition-colors" data-i18n-key="addItemButton">
+                                            <i class="fas fa-plus mr-2"></i> Add Item
+                                        </button>
+                                        <button id="cancel-edit-btn" class="w-full py-3 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition-colors hidden" data-i18n-key="cancelButton">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                    <p id="item-form-message" class="text-center text-red-400 hidden" data-i18n-key="fillAllFieldsMessage">Please fill in all required fields.</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-600 p-4 rounded-lg">
+                                <h3 class="text-xl font-bold mb-3 text-center border-b border-gray-500 pb-2" data-i18n-key="currentMenuItemsTitle">Current Menu Items</h3>
+                                <div id="admin-menu-list" class="space-y-3 max-h-96 overflow-y-auto pr-2">
+                                    <p id="no-menu-items-message" class="text-gray-400 text-sm text-center" data-i18n-key="noMenuItemsMessage">No menu items added yet.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-700 p-6 rounded-xl shadow-lg mb-8">
+                        <h2 class="text-3xl font-bold text-yellow-400 mb-4 text-center" data-i18n-key="paymentProviderManagementTitle">Payment Provider Management</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-gray-600 p-4 rounded-lg">
+                                <h3 class="text-xl font-bold mb-3 text-center border-b border-gray-500 pb-2" data-i18n-key="addProviderTitle">Add New Provider</h3>
+                                <div class="space-y-4">
+                                    <input type="text" id="provider-name" data-i18n-placeholder-key="providerNamePlaceholder" placeholder="Provider Name (e.g., Stripe, PayPal)" class="w-full p-2 rounded bg-gray-700 border border-gray-500 text-white" required>
+                                    <input type="url" id="provider-link" data-i18n-placeholder-key="providerLinkPlaceholder" placeholder="Payment Link (e.g., https://stripe.com/...)" class="w-full p-2 rounded bg-gray-700 border border-gray-500 text-white" required>
+                                    <div class="flex gap-2">
+                                        <button id="add-provider-btn" class="w-full py-3 bg-indigo-500 text-white font-bold rounded-lg hover:bg-indigo-600 transition-colors" data-i18n-key="addProviderButton">
+                                            <i class="fas fa-user-plus mr-2"></i> Add Provider
+                                        </button>
+                                    </div>
+                                    <p id="provider-form-message" class="text-center text-red-400 hidden" data-i18n-key="fillProviderFieldsMessage">Please enter both a provider name and a payment link.</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-600 p-4 rounded-lg">
+                                <h3 class="text-xl font-bold mb-3 text-center border-b border-gray-500 pb-2" data-i18n-key="currentProvidersTitle">Current Payment Providers</h3>
+                                <div id="providers-list" class="space-y-3 max-h-96 overflow-y-auto pr-2">
+                                    <p id="no-providers-message" class="text-gray-400 text-sm text-center" data-i18n-key="noProvidersMessage">No providers added yet.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8">
+                        <h2 class="text-3xl font-bold text-green-400 mb-4" data-i18n-key="orderStatusOverviewTitle">Order Status Overview</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="admin-column">
+                                <h3 data-i18n-key="pendingPaymentsTitle">Pending Payments</h3>
+                                <div id="new-orders-list-admin" class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                                    <p class="text-gray-500 text-center text-sm" id="no-new-orders" data-i18n-key="noNewOrdersMessage">No new orders.</p>
+                                </div>
+                            </div>
+                            <div class="admin-column">
+                                <h3 data-i18n-key="ordersInProgressTitle">Orders In Progress</h3>
+                                <div id="in-progress-orders-list-admin" class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                                    <p class="text-gray-500 text-center text-sm" id="no-in-progress-orders" data-i18n-key="noInProgressOrdersMessage">No orders in progress.</p>
+                                </div>
+                            </div>
+                            <div class="admin-column">
+                                <h3 data-i18n-key="completedOrdersTitle">Completed/Delivered Orders</h3>
+                                <div id="completed-orders-list-admin" class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                                    <p class="text-gray-500 text-center text-sm" id="no-completed-orders" data-i18n-key="noCompletedOrdersMessage">No completed orders.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col sm:flex-row justify-between gap-4 mt-6 border-b border-gray-700 pb-6 mb-6">
+                            <button id="clear-orders-btn" class="w-full sm:w-1/2 py-3 bg-red-600 text-white font-bold rounded-lg shadow-md hover:bg-red-700 transition-colors">
+                                <i class="fas fa-trash-alt mr-2"></i> <span data-i18n-key="clearAllOrdersButton">Clear All Orders</span>
+                            </button>
+                            <button id="save-completed-orders-btn" class="w-full sm:w-1/2 py-3 bg-blue-400 text-white font-bold rounded-lg shadow-md hover:bg-blue-500 transition-colors">
+                                <i class="fas fa-save mr-2"></i> <span data-i18n-key="saveCompletedButton">Save Completed Orders to Clipboard</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="confirmationModal" class="modal">
+            <div class="modal-content text-center">
+                <span class="close-button">&times;</span>
+                <p class="text-xl font-bold text-gray-200 mb-4" data-i18n-key="clearOrdersConfirmPrompt">Are you sure you want to clear all orders?</p>
+                <div class="flex justify-center gap-4 mt-4">
+                    <button id="confirmYesBtn" class="px-6 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors" data-i18n-key="yesButton">Yes</button>
+                    <button id="confirmNoBtn" class="px-6 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition-colors" data-i18n-key="noButton">No</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="transactionModal" class="modal">
+            <div class="modal-content text-center">
+                <span id="close-transaction-modal" class="close-button">&times;</span>
+                <h3 class="text-3xl font-bold text-green-400 mb-4" data-i18n-key="orderConfirmedTitle">Order Confirmed!</h3>
+                <p class="text-lg text-gray-300 mb-2" data-i18n-key="transactionNumberPrompt">Your transaction number is:</p>
+                <p id="transaction-number-display" class="text-4xl font-extrabold text-yellow-300 mb-6 break-all"></p>
+                <button id="copy-transaction-btn" class="copy-button w-full">
+                    <i class="fas fa-copy mr-2"></i> <span data-i18n-key="copyTransactionButton">Copy Transaction Number</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const showKioskBtn = document.getElementById('show-kiosk-btn');
+            const showAdminBtn = document.getElementById('show-admin-btn');
+            const startPage = document.getElementById('start-page');
+            const foodKioskPage = document.getElementById('food-kiosk-page');
+            const orderMenuPage = document.getElementById('order-menu-page'); // New
+            const adminDashboardPage = document.getElementById('admin-dashboard-page');
+            const backToStartKioskBtn = document.getElementById('back-to-start-kiosk-btn');
+            const backToStartAdminBtn = document.getElementById('back-to-start-admin-btn');
+
+            const menuItemsContainer = document.getElementById('menu-items-container');
+            const orderList = document.getElementById('order-list');
+            const orderTotalSpan = document.getElementById('order-total');
+            const emptyCartMessage = document.getElementById('empty-cart-message');
+            const completeOrderBtn = document.getElementById('complete-order-btn');
+            const startNewOrderBtn = document.getElementById('start-new-order-btn'); // New
+            const paymentProvidersContainer = document.getElementById('payment-providers-container'); // New
+
+            const adminPinInput = document.getElementById('admin-pin-input');
+            const adminLoginSubmitBtn = document.getElementById('admin-login-submit-btn');
+            const adminLoginMessage = document.getElementById('admin-login-message');
+            const adminDashboardContent = document.getElementById('admin-dashboard-content');
+            
+            const newOrdersListAdmin = document.getElementById('new-orders-list-admin');
+            const inProgressOrdersListAdmin = document.getElementById('in-progress-orders-list-admin');
+            const completedOrdersListAdmin = document.getElementById('completed-orders-list-admin');
+            const noNewOrders = document.getElementById('no-new-orders');
+            const noInProgressOrders = document.getElementById('no-in-progress-orders');
+            const noCompletedOrders = document.getElementById('no-completed-orders');
+            const clearOrdersBtn = document.getElementById('clear-orders-btn');
+            const saveCompletedOrdersBtn = document.getElementById('save-completed-orders-btn');
+            const confirmationModal = document.getElementById('confirmationModal');
+            const confirmYesBtn = document.getElementById('confirmYesBtn');
+            const confirmNoBtn = document.getElementById('confirmNoBtn');
+            const closeConfirmModal = confirmationModal.querySelector('.close-button');
+
+            // Admin: Menu Management
+            const itemFormTitle = document.getElementById('item-form-title');
+            const itemIdInput = document.getElementById('item-id');
+            const itemNameInput = document.getElementById('item-name');
+            const itemPriceInput = document.getElementById('item-price');
+            const itemDescriptionInput = document.getElementById('item-description');
+            const itemImageUrlInput = document.getElementById('item-image-url');
+            const itemImageFileInput = document.getElementById('item-image-file'); // New
+            const imagePreview = document.getElementById('image-preview'); // New
+            const saveItemBtn = document.getElementById('save-item-btn');
+            const cancelEditBtn = document.getElementById('cancel-edit-btn');
+            const itemFormMessage = document.getElementById('item-form-message');
+            const adminMenuList = document.getElementById('admin-menu-list');
+            const noMenuItemsMessage = document.getElementById('no-menu-items-message');
+
+            // Admin: Store Text Management
+            const storeTitleInput = document.getElementById('store-title-input');
+            const storeTaglineInput = document.getElementById('store-tagline-input');
+            const menuTitleInput = document.getElementById('menu-title-input');
+            const startPageTitle = document.getElementById('start-page-title');
+            const kioskTitle = document.getElementById('kiosk-title');
+            const kioskTagline = document.getElementById('kiosk-tagline');
+            const kioskMenuTitle = document.getElementById('kiosk-menu-title');
+
+            // Admin: Provider Management
+            const providerNameInput = document.getElementById('provider-name');
+            const providerLinkInput = document.getElementById('provider-link'); // New
+            const addProviderBtn = document.getElementById('add-provider-btn');
+            const providersList = document.getElementById('providers-list');
+            const providerFormMessage = document.getElementById('provider-form-message');
+            const noProvidersMessage = document.getElementById('no-providers-message');
+            
+            // New transaction modal elements
+            const transactionModal = document.getElementById('transactionModal');
+            const transactionNumberDisplay = document.getElementById('transaction-number-display');
+            const copyTransactionBtn = document.getElementById('copy-transaction-btn');
+            const closeTransactionModalBtn = document.getElementById('close-transaction-modal');
+
+            // Language selector elements
+            const langSelectors = document.querySelectorAll('select[id^="language-selector-"]');
+            
+            // Localization data
+            const translations = {
+                en: {
+                    startPageTitle: "Welcome to The Food Spot App!",
+                    startPagePrompt: "Please choose your role to continue:",
+                    customerKioskButton: "Customer Kiosk",
+                    adminDashboardButton: "Admin Dashboard",
+                    backToStart: "Back to Start",
+                    kioskMenuTitle: "Our Delicious Menu",
+                    yourOrderTitle: "Your Order",
+                    emptyCartMessage: "Your cart is empty. Add some delicious items!",
+                    totalLabel: "Total:",
+                    completeOrderButton: "Complete Order",
+                    orderPlacedTitle: "Order Placed!",
+                    orderPlacedPrompt: "Your order has been sent to the kitchen. Please choose a payment provider below.",
+                    paymentLinkPrompt: "Use the button below to pay for your order:",
+                    goToPaymentButton: "Go to Payment",
+                    startNewOrderButton: "Start a New Order",
+                    adminDashboardTitle: "Admin Dashboard",
+                    adminPinPrompt: "Enter PIN to access the Admin Dashboard:",
+                    adminPinPlaceholder: "15-digit PIN",
+                    loginButton: "Login",
+                    incorrectPinMessage: "Incorrect PIN. Please try again.",
+                    storeTextManagementTitle: "Store Text Management",
+                    storeTitleLabel: "Store Title",
+                    storeTitlePlaceholder: "e.g., The Food Spot",
+                    taglineLabel: "Tagline",
+                    taglinePlaceholder: "e.g., Fresh, Fast, Delicious!",
+                    menuTitleLabel: "Menu Title",
+                    menuTitlePlaceholder: "e.g., Our Delicious Menu",
+                    menuManagementTitle: "Menu Management",
+                    addMenuItemTitle: "Add New Menu Item",
+                    itemNamePlaceholder: "Item Name",
+                    itemPricePlaceholder: "Price (e.g., 9.99)",
+                    itemDescriptionPlaceholder: "Description",
+                    addImagePrompt: "Add an image:",
+                    uploadImageLabel: "Upload an image (PNG/JPG):",
+                    orSeparator: "-- OR --",
+                    imageUrlLabel: "Enter an image URL:",
+                    imageUrlPlaceholder: "e.g., https://placehold.co/...",
+                    addItemButton: "Add Item",
+                    updateItemButton: "Update Item",
+                    cancelButton: "Cancel",
+                    fillAllFieldsMessage: "Please fill in all required fields.",
+                    currentMenuItemsTitle: "Current Menu Items",
+                    noMenuItemsMessage: "No menu items added yet.",
+                    paymentProviderManagementTitle: "Payment Provider Management",
+                    addProviderTitle: "Add New Provider",
+                    providerNamePlaceholder: "Provider Name (e.g., Stripe, PayPal)",
+                    providerLinkPlaceholder: "Payment Link (e.g., https://stripe.com/...)",
+                    addProviderButton: "Add Provider",
+                    fillProviderFieldsMessage: "Please enter both a provider name and a payment link.",
+                    currentProvidersTitle: "Current Payment Providers",
+                    noProvidersMessage: "No providers added yet.",
+                    orderStatusOverviewTitle: "Order Status Overview",
+                    pendingPaymentsTitle: "Pending Payments",
+                    ordersInProgressTitle: "Orders In Progress",
+                    completedOrdersTitle: "Completed/Delivered Orders",
+                    noNewOrdersMessage: "No new orders.",
+                    noInProgressOrdersMessage: "No orders in progress.",
+                    noCompletedOrdersMessage: "No completed orders.",
+                    clearAllOrdersButton: "Clear All Orders",
+                    saveCompletedButton: "Save Completed Orders to Clipboard",
+                    clearOrdersConfirmPrompt: "Are you sure you want to clear all orders?",
+                    yesButton: "Yes",
+                    noButton: "No",
+                    orderConfirmedTitle: "Order Confirmed!",
+                    transactionNumberPrompt: "Your transaction number is:",
+                    copyTransactionButton: "Copy Transaction Number",
+                    footerRights: "All rights reserved.",
+                    imageNotFound: "Image Not Found",
+                    noImg: "No Img"
+                },
+                es: {
+                    startPageTitle: "¡Bienvenido a la aplicación The Food Spot!",
+                    startPagePrompt: "Por favor, elija su rol para continuar:",
+                    customerKioskButton: "Quiosco del cliente",
+                    adminDashboardButton: "Panel de administración",
+                    backToStart: "Volver a Inicio",
+                    kioskMenuTitle: "Nuestro Delicioso Menú",
+                    yourOrderTitle: "Tu Pedido",
+                    emptyCartMessage: "Tu carrito está vacío. ¡Añade algunos artículos deliciosos!",
+                    totalLabel: "Total:",
+                    completeOrderButton: "Completar Pedido",
+                    orderPlacedTitle: "¡Pedido Realizado!",
+                    orderPlacedPrompt: "Tu pedido ha sido enviado a la cocina. Por favor, elige un proveedor de pago a continuación.",
+                    paymentLinkPrompt: "Usa el botón de abajo para pagar tu pedido:",
+                    goToPaymentButton: "Ir a Pagar",
+                    startNewOrderButton: "Empezar un Nuevo Pedido",
+                    adminDashboardTitle: "Panel de Administración",
+                    adminPinPrompt: "Introduce el PIN para acceder al Panel de Administración:",
+                    adminPinPlaceholder: "PIN de 15 dígitos",
+                    loginButton: "Iniciar Sesión",
+                    incorrectPinMessage: "PIN incorrecto. Por favor, inténtalo de nuevo.",
+                    storeTextManagementTitle: "Gestión de Texto de la Tienda",
+                    storeTitleLabel: "Título de la Tienda",
+                    storeTitlePlaceholder: "ej., The Food Spot",
+                    taglineLabel: "Lema",
+                    taglinePlaceholder: "ej., ¡Fresco, Rápido y Delicioso!",
+                    menuTitleLabel: "Título del Menú",
+                    menuTitlePlaceholder: "ej., Nuestro Delicioso Menú",
+                    menuManagementTitle: "Gestión del Menú",
+                    addMenuItemTitle: "Añadir Nuevo Artículo del Menú",
+                    itemNamePlaceholder: "Nombre del Artículo",
+                    itemPricePlaceholder: "Precio (ej., 9.99)",
+                    itemDescriptionPlaceholder: "Descripción",
+                    addImagePrompt: "Añadir una imagen:",
+                    uploadImageLabel: "Subir una imagen (PNG/JPG):",
+                    orSeparator: "-- O --",
+                    imageUrlLabel: "Introduce una URL de imagen:",
+                    imageUrlPlaceholder: "ej., https://placehold.co/...",
+                    addItemButton: "Añadir Artículo",
+                    updateItemButton: "Actualizar Artículo",
+                    cancelButton: "Cancelar",
+                    fillAllFieldsMessage: "Por favor, rellena todos los campos obligatorios.",
+                    currentMenuItemsTitle: "Artículos del Menú Actuales",
+                    noMenuItemsMessage: "Aún no se han añadido artículos al menú.",
+                    paymentProviderManagementTitle: "Gestión de Proveedores de Pago",
+                    addProviderTitle: "Añadir Nuevo Proveedor",
+                    providerNamePlaceholder: "Nombre del Proveedor (ej., Stripe, PayPal)",
+                    providerLinkPlaceholder: "Enlace de Pago (ej., https://stripe.com/...)",
+                    addProviderButton: "Añadir Proveedor",
+                    fillProviderFieldsMessage: "Por favor, introduce tanto el nombre del proveedor como un enlace de pago.",
+                    currentProvidersTitle: "Proveedores de Pago Actuales",
+                    noProvidersMessage: "Aún no se han añadido proveedores.",
+                    orderStatusOverviewTitle: "Resumen del Estado del Pedido",
+                    pendingPaymentsTitle: "Pagos Pendientes",
+                    ordersInProgressTitle: "Pedidos en Progreso",
+                    completedOrdersTitle: "Pedidos Completados/Entregados",
+                    noNewOrdersMessage: "No hay pedidos nuevos.",
+                    noInProgressOrdersMessage: "No hay pedidos en progreso.",
+                    noCompletedOrdersMessage: "No hay pedidos completados.",
+                    clearAllOrdersButton: "Borrar Todos los Pedidos",
+                    saveCompletedButton: "Guardar Pedidos Completados en el Portapapeles",
+                    clearOrdersConfirmPrompt: "¿Estás seguro de que quieres borrar todos los pedidos?",
+                    yesButton: "Sí",
+                    noButton: "No",
+                    orderConfirmedTitle: "¡Pedido Confirmado!",
+                    transactionNumberPrompt: "Tu número de transacción es:",
+                    copyTransactionButton: "Copiar Número de Transacción",
+                    footerRights: "Todos los derechos reservados.",
+                    imageNotFound: "Imagen no encontrada",
+                    noImg: "Sin Imagen"
+                },
+                fr: {
+                    startPageTitle: "Bienvenue sur l'application The Food Spot !",
+                    startPagePrompt: "Veuillez choisir votre rôle pour continuer :",
+                    customerKioskButton: "Kiosque Client",
+                    adminDashboardButton: "Tableau de Bord Admin",
+                    backToStart: "Retour au Début",
+                    kioskMenuTitle: "Notre Délicieux Menu",
+                    yourOrderTitle: "Votre Commande",
+                    emptyCartMessage: "Votre panier est vide. Ajoutez de délicieux articles !",
+                    totalLabel: "Total :",
+                    completeOrderButton: "Terminer la Commande",
+                    orderPlacedTitle: "Commande Passée !",
+                    orderPlacedPrompt: "Votre commande a été envoyée en cuisine. Veuillez choisir un fournisseur de paiement ci-dessous.",
+                    paymentLinkPrompt: "Utilisez le bouton ci-dessous pour payer votre commande :",
+                    goToPaymentButton: "Aller au Paiement",
+                    startNewOrderButton: "Démarrer une Nouvelle Commande",
+                    adminDashboardTitle: "Tableau de Bord Admin",
+                    adminPinPrompt: "Entrez le code PIN pour accéder au Tableau de Bord Admin :",
+                    adminPinPlaceholder: "PIN à 15 chiffres",
+                    loginButton: "Connexion",
+                    incorrectPinMessage: "PIN incorrect. Veuillez réessayer.",
+                    storeTextManagementTitle: "Gestion du Texte du Magasin",
+                    storeTitleLabel: "Titre du Magasin",
+                    storeTitlePlaceholder: "ex., The Food Spot",
+                    taglineLabel: "Slogan",
+                    taglinePlaceholder: "ex., Frais, Rapide et Délicieux !",
+                    menuTitleLabel: "Titre du Menu",
+                    menuTitlePlaceholder: "ex., Notre Délicieux Menu",
+                    menuManagementTitle: "Gestion du Menu",
+                    addMenuItemTitle: "Ajouter un Nouvel Article au Menu",
+                    itemNamePlaceholder: "Nom de l'article",
+                    itemPricePlaceholder: "Prix (ex., 9.99)",
+                    itemDescriptionPlaceholder: "Description",
+                    addImagePrompt: "Ajouter une image :",
+                    uploadImageLabel: "Télécharger une image (PNG/JPG) :",
+                    orSeparator: "-- OU --",
+                    imageUrlLabel: "Entrez une URL d'image :",
+                    imageUrlPlaceholder: "ex., https://placehold.co/...",
+                    addItemButton: "Ajouter l'Article",
+                    updateItemButton: "Mettre à jour l'Article",
+                    cancelButton: "Annuler",
+                    fillAllFieldsMessage: "Veuillez remplir tous les champs obligatoires.",
+                    currentMenuItemsTitle: "Articles du Menu Actuels",
+                    noMenuItemsMessage: "Aucun article de menu ajouté pour l'instant.",
+                    paymentProviderManagementTitle: "Gestion des Fournisseurs de Paiement",
+                    addProviderTitle: "Ajouter un Nouveau Fournisseur",
+                    providerNamePlaceholder: "Nom du Fournisseur (ex., Stripe, PayPal)",
+                    providerLinkPlaceholder: "Lien de Paiement (ex., https://stripe.com/...)",
+                    addProviderButton: "Ajouter le Fournisseur",
+                    fillProviderFieldsMessage: "Veuillez entrer à la fois un nom de fournisseur et un lien de paiement.",
+                    currentProvidersTitle: "Fournisseurs de Paiement Actuels",
+                    noProvidersMessage: "Aucun fournisseur ajouté pour l'instant.",
+                    orderStatusOverviewTitle: "Aperçu de l'État des Commandes",
+                    pendingPaymentsTitle: "Paiements en Attente",
+                    ordersInProgressTitle: "Commandes en Cours",
+                    completedOrdersTitle: "Commandes Terminées/Livré",
+                    noNewOrdersMessage: "Pas de nouvelles commandes.",
+                    noInProgressOrdersMessage: "Pas de commandes en cours.",
+                    noCompletedOrdersMessage: "Pas de commandes terminées.",
+                    clearAllOrdersButton: "Effacer toutes les commandes",
+                    saveCompletedButton: "Enregistrer les commandes terminées dans le presse-papiers",
+                    clearOrdersConfirmPrompt: "Êtes-vous sûr de vouloir effacer toutes les commandes ?",
+                    yesButton: "Oui",
+                    noButton: "Non",
+                    orderConfirmedTitle: "Commande Confirmée !",
+                    transactionNumberPrompt: "Votre numéro de transaction est :",
+                    copyTransactionButton: "Copier le Numéro de Transaction",
+                    footerRights: "Tous droits réservés.",
+                    imageNotFound: "Image non trouvée",
+                    noImg: "Pas d'image"
+                }
+            };
+
+            function setLanguage(lang) {
+                document.querySelectorAll('[data-i18n-key]').forEach(element => {
+                    const key = element.getAttribute('data-i18n-key');
+                    if (translations[lang] && translations[lang][key]) {
+                        element.textContent = translations[lang][key];
+                    }
+                });
+                document.querySelectorAll('[data-i18n-placeholder-key]').forEach(element => {
+                    const key = element.getAttribute('data-i18n-placeholder-key');
+                    if (translations[lang] && translations[lang][key]) {
+                        element.placeholder = translations[lang][key];
+                    }
+                });
+                localStorage.setItem('appLanguage', lang);
+            }
+
+            let currentOrder = [];
+            const ADMIN_PIN = "123456789012345"; // 15-digit PIN
+
+            // State variables for dynamic content
+            let menuItems = [];
+            let providers = [];
+
+            // Helper Functions
+            function showPage(pageId) {
+                const pages = ['start-page', 'food-kiosk-page', 'admin-dashboard-page', 'order-menu-page'];
+                pages.forEach(id => {
+                    document.getElementById(id).classList.add('hidden');
+                });
+                document.getElementById(pageId).classList.remove('hidden');
+            }
+
+            function updateKioskText() {
+                const lang = localStorage.getItem('appLanguage') || 'en';
+                const storeTitle = localStorage.getItem('storeTitle') || translations[lang].storeTitlePlaceholder;
+                const tagline = localStorage.getItem('storeTagline') || translations[lang].taglinePlaceholder;
+                const menuTitle = localStorage.getItem('menuTitle') || translations[lang].menuTitlePlaceholder;
+                
+                startPageTitle.textContent = `${translations[lang].startPageTitle.replace('The Food Spot', storeTitle)}`;
+                kioskTitle.textContent = storeTitle;
+                kioskTagline.textContent = tagline;
+                kioskMenuTitle.textContent = menuTitle;
+                document.getElementById('footer-text-name').textContent = storeTitle;
+            }
+
+            function loadMenuItems() {
+                const storedMenuItems = JSON.parse(localStorage.getItem('menuItems')) || [];
+                menuItems = storedMenuItems;
+                renderMenuItems();
+                renderAdminMenuItems();
+            }
+
+            function saveMenuItems() {
+                localStorage.setItem('menuItems', JSON.stringify(menuItems));
+                renderMenuItems();
+                renderAdminMenuItems();
+            }
+
+            function loadProviders() {
+                const storedProviders = JSON.parse(localStorage.getItem('paymentProviders')) || [];
+                providers = storedProviders;
+                renderPaymentProviders();
+            }
+
+            function saveProviders() {
+                localStorage.setItem('paymentProviders', JSON.stringify(providers));
+                renderPaymentProviders();
+            }
+
+            function renderMenuItems() {
+                const lang = localStorage.getItem('appLanguage') || 'en';
+                menuItemsContainer.innerHTML = '';
+                if (menuItems.length === 0) {
+                    menuItemsContainer.innerHTML = `<p class="text-gray-400 text-center col-span-2">${translations[lang].noMenuItemsMessage}</p>`;
+                    return;
+                }
+                
+                menuItems.forEach(item => {
+                    const menuItemCard = document.createElement('div');
+                    menuItemCard.classList.add('menu-item-card', 'p-4', 'flex', 'flex-col', 'items-center', 'text-center');
+                    
+                    menuItemCard.innerHTML = `
+                        <div class="h-40 w-full overflow-hidden rounded-md mb-4">
+                            <img src="${item.imageUrl}" onerror="this.onerror=null;this.src='https://placehold.co/400x200/4a5568/e2e8f0?text=${translations[lang].imageNotFound.replace(' ', '+')}';" alt="${item.name}" class="h-full w-full object-cover">
+                        </div>
+                        <h3 class="text-xl font-bold text-yellow-300">${item.name}</h3>
+                        <p class="text-gray-400 text-sm mb-2">${item.description}</p>
+                        <span class="text-2xl font-extrabold text-green-400 mb-4">$${item.price.toFixed(2)}</span>
+                        <button class="add-to-cart-btn w-full py-2 bg-indigo-500 text-white rounded-lg font-bold hover:bg-indigo-600 transition-colors" data-item-id="${item.id}">
+                            <i class="fas fa-cart-plus mr-2"></i> ${translations[lang].addItemButton}
+                        </button>
+                    `;
+                    menuItemsContainer.appendChild(menuItemCard);
+                });
+
+                document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const itemId = event.target.dataset.itemId;
+                        const itemToAdd = menuItems.find(item => item.id === itemId);
+                        if (itemToAdd) {
+                            addToOrder(itemToAdd);
+                        }
+                    });
+                });
+            }
+
+            function addToOrder(item) {
+                const existingItem = currentOrder.find(orderItem => orderItem.id === item.id);
+                if (existingItem) {
+                    existingItem.quantity++;
+                } else {
+                    currentOrder.push({ ...item, quantity: 1 });
+                }
+                updateOrderList();
+            }
+
+            function updateOrderList() {
+                const lang = localStorage.getItem('appLanguage') || 'en';
+                orderList.innerHTML = '';
+                let total = 0;
+                if (currentOrder.length === 0) {
+                    emptyCartMessage.classList.remove('hidden');
+                    emptyCartMessage.textContent = translations[lang].emptyCartMessage;
+                    completeOrderBtn.disabled = true;
+                } else {
+                    emptyCartMessage.classList.add('hidden');
+                    completeOrderBtn.disabled = false;
+                    currentOrder.forEach(item => {
+                        total += item.price * item.quantity;
+                        const orderItemDiv = document.createElement('div');
+                        orderItemDiv.classList.add('flex', 'items-center', 'justify-between', 'py-2', 'px-3', 'bg-gray-700', 'rounded-lg');
+                        orderItemDiv.innerHTML = `
+                            <div class="flex-1">
+                                <span class="text-gray-200 font-medium">${item.name}</span>
+                                <span class="text-gray-400 text-sm"> x${item.quantity}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-green-400 font-semibold">$${(item.price * item.quantity).toFixed(2)}</span>
+                                <button class="remove-item-btn text-red-500 hover:text-red-600 transition-colors" data-item-id="${item.id}"><i class="fas fa-trash-alt"></i></button>
+                            </div>
+                        `;
+                        orderList.appendChild(orderItemDiv);
+                    });
+                    document.querySelectorAll('.remove-item-btn').forEach(button => {
+                        button.addEventListener('click', (event) => {
+                            const itemId = event.target.dataset.itemId;
+                            const itemIndex = currentOrder.findIndex(item => item.id === itemId);
+                            if (itemIndex > -1) {
+                                currentOrder.splice(itemIndex, 1);
+                            }
+                            updateOrderList();
+                        });
+                    });
+                }
+                orderTotalSpan.textContent = `$${total.toFixed(2)}`;
+            }
+
+            // Order management for admin dashboard
+            let orders = JSON.parse(localStorage.getItem('orders')) || [];
+
+            function saveOrders() {
+                localStorage.setItem('orders', JSON.stringify(orders));
+                renderAdminOrders();
+            }
+
+            function renderAdminOrders() {
+                const lang = localStorage.getItem('appLanguage') || 'en';
+                newOrdersListAdmin.innerHTML = '';
+                inProgressOrdersListAdmin.innerHTML = '';
+                completedOrdersListAdmin.innerHTML = '';
+                
+                const newOrders = orders.filter(o => o.status === 'pending');
+                const inProgressOrders = orders.filter(o => o.status === 'in-progress');
+                const completedOrders = orders.filter(o => o.status === 'completed');
+
+                noNewOrders.style.display = newOrders.length === 0 ? 'block' : 'none';
+                noNewOrders.textContent = translations[lang].noNewOrdersMessage;
+                noInProgressOrders.style.display = inProgressOrders.length === 0 ? 'block' : 'none';
+                noInProgressOrders.textContent = translations[lang].noInProgressOrdersMessage;
+                noCompletedOrders.style.display = completedOrders.length === 0 ? 'block' : 'none';
+                noCompletedOrders.textContent = translations[lang].noCompletedOrdersMessage;
+
+                newOrders.forEach(order => newOrdersListAdmin.appendChild(createOrderCard(order)));
+                inProgressOrders.forEach(order => inProgressOrdersListAdmin.appendChild(createOrderCard(order)));
+                completedOrders.forEach(order => completedOrdersListAdmin.appendChild(createOrderCard(order)));
+            }
+
+            function createOrderCard(order) {
+                const lang = localStorage.getItem('appLanguage') || 'en';
+                const card = document.createElement('div');
+                card.classList.add('admin-order-card');
+                
+                const providerInfo = order.paymentProvider ? `<p class="text-xs text-gray-400" data-i18n-key="paymentVia">Payment via: ${order.paymentProvider.name}</p>` : '';
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-lg font-bold text-gray-100">${translations[lang].orderIdLabel || 'Order'} #${order.orderId}</h4>
+                        <span class="text-sm text-gray-400">${new Date(order.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                    <p class="text-sm font-semibold text-yellow-300 mb-1" data-i18n-key="totalLabel">Total: $${order.total.toFixed(2)}</p>
+                    ${providerInfo}
+                    <ul class="order-items-list">
+                        ${order.items.map(item => `<li>${item.name} (x${item.quantity}) - $${(item.price * item.quantity).toFixed(2)}</li>`).join('')}
+                    </ul>
+                    <div class="status-buttons mt-3 flex justify-end gap-2">
+                        ${order.status !== 'in-progress' ? `<button data-order-id="${order.orderId}" data-status="in-progress" class="btn-in-progress" data-i18n-key="inProgressButton">${translations[lang].inProgressButton || 'In Progress'}</button>` : ''}
+                        ${order.status !== 'completed' ? `<button data-order-id="${order.orderId}" data-status="completed" class="btn-completed" data-i18n-key="completedButton">${translations[lang].completedButton || 'Completed'}</button>` : ''}
+                        ${order.status === 'completed' ? `<button data-order-id="${order.orderId}" data-status="in-progress" class="btn-revert" data-i18n-key="revertButton">${translations[lang].revertButton || 'Revert'}</button>` : ''}
+                    </div>
+                `;
+
+                card.querySelectorAll('.status-buttons button').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const orderId = event.target.dataset.orderId;
+                        const newStatus = event.target.dataset.status;
+                        updateOrderStatus(orderId, newStatus);
+                    });
+                });
+                return card;
+            }
+
+            function updateOrderStatus(orderId, newStatus) {
+                const orderIndex = orders.findIndex(o => o.orderId === orderId);
+                if (orderIndex > -1) {
+                    orders[orderIndex].status = newStatus;
+                    saveOrders();
+                }
+            }
+
+            function renderAdminMenuItems() {
+                const lang = localStorage.getItem('appLanguage') || 'en';
+                adminMenuList.innerHTML = '';
+                if (menuItems.length === 0) {
+                    noMenuItemsMessage.style.display = 'block';
+                    noMenuItemsMessage.textContent = translations[lang].noMenuItemsMessage;
+                    return;
+                }
+                noMenuItemsMessage.style.display = 'none';
+
+                menuItems.forEach(item => {
+                    const listItem = document.createElement('div');
+                    listItem.classList.add('bg-gray-700', 'p-3', 'rounded-lg', 'flex', 'items-center', 'gap-4');
+                    listItem.innerHTML = `
+                        <img src="${item.imageUrl}" class="w-12 h-12 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/48x48/4a5568/e2e8f0?text=${translations[lang].noImg.replace(' ', '+')}';">
+                        <div class="flex-1">
+                            <p class="font-bold text-yellow-300">${item.name}</p>
+                            <p class="text-sm text-gray-400">$${item.price.toFixed(2)}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button data-id="${item.id}" class="edit-item-btn text-blue-400 hover:text-blue-500 transition-colors"><i class="fas fa-edit"></i></button>
+                            <button data-id="${item.id}" class="delete-item-btn text-red-400 hover:text-red-500 transition-colors"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                    `;
+                    adminMenuList.appendChild(listItem);
+                });
+
+                document.querySelectorAll('.edit-item-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const itemId = event.target.closest('button').dataset.id;
+                        editItem(itemId);
+                    });
+                });
+
+                document.querySelectorAll('.delete-item-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const itemId = event.target.closest('button').dataset.id;
+                        deleteItem(itemId);
+                    });
+                });
+            }
+
+            function resetItemForm() {
+                const lang = localStorage.getItem('appLanguage') || 'en';
+                itemIdInput.value = '';
+                itemNameInput.value = '';
+                itemPriceInput.value = '';
+                itemDescriptionInput.value = '';
+                itemImageUrlInput.value = '';
+                itemImageFileInput.value = null;
+                imagePreview.classList.add('hidden');
+                imagePreview.querySelector('img').src = '';
+                itemFormTitle.textContent = translations[lang].addMenuItemTitle;
+                saveItemBtn.innerHTML = `<i class="fas fa-plus mr-2"></i> ${translations[lang].addItemButton}`;
+                cancelEditBtn.classList.add('hidden');
+                itemFormMessage.classList.add('hidden');
+            }
+
+            function editItem(id) {
+                const lang = localStorage.getItem('appLanguage') || 'en';
+                const item = menuItems.find(i => i.id === id);
+                if (item) {
+                    itemIdInput.value = item.id;
+                    itemNameInput.value = item.name;
+                    itemPriceInput.value = item.price;
+                    itemDescriptionInput.value = item.description;
+                    itemImageUrlInput.value = item.imageUrl.startsWith('data:') ? '' : item.imageUrl;
+                    itemFormTitle.textContent = `${translations[lang].updateItemButton.replace('Update', 'Editing')}: ${item.name}`;
+                    saveItemBtn.innerHTML = `<i class="fas fa-save mr-2"></i> ${translations[lang].updateItemButton}`;
+                    cancelEditBtn.classList.remove('hidden');
+                    
+                    if (item.imageUrl.startsWith('data:')) {
+                        imagePreview.querySelector('img').src = item.imageUrl;
+                        imagePreview.classList.remove('hidden');
+                        itemImageUrlInput.value = ''; // Clear URL input if image is a data URL
+                    } else {
+                        imagePreview.classList.add('hidden');
+                    }
+                }
+            }
+
+            function deleteItem(id) {
+                const lang = localStorage.getItem('appLanguage') || 'en';
+                if (confirm(translations[lang].confirmDeleteItem || 'Are you sure you want to delete this menu item?')) {
+                    menuItems = menuItems.filter(item => item.id !== id);
+                    saveMenuItems();
+                    resetItemForm();
+                }
+            }
+            
+            // New: Image Upload Logic
+            itemImageFileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        imagePreview.querySelector('img').src = e.target.result;
+                        imagePreview.classList.remove('hidden');
+                        itemImageUrlInput.value = ''; // Clear URL input when a file is selected
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    imagePreview.classList.add('hidden');
+                    imagePreview.querySelector('img').src = '';
+                }
+            });
+
+            saveItemBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const lang = localStorage.getItem('appLanguage') || 'en';
+                const name = itemNameInput.value.trim();
+                const price = parseFloat(itemPriceInput.value);
+                const description = itemDescriptionInput.value.trim();
+                const imageFile = itemImageFileInput.files[0];
+                let imageUrl = itemImageUrlInput.value.trim();
+
+                if (!name || isNaN(price) || !description) {
+                    itemFormMessage.textContent = translations[lang].fillAllFieldsMessage;
+                    itemFormMessage.classList.remove('hidden');
+                    return;
+                }
+
+                if (imageFile) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        imageUrl = e.target.result;
+                        processItemSave(name, price, description, imageUrl);
+                    };
+                    reader.readAsDataURL(imageFile);
+                } else {
+                    // Use URL if file is not selected, or fallback
+                    if (!imageUrl) {
+                         imageUrl = 'https://placehold.co/400x200/4a5568/e2e8f0?text=No+Image';
+                    }
+                    processItemSave(name, price, description, imageUrl);
+                }
+            });
+
+            function processItemSave(name, price, description, imageUrl) {
+                const id = itemIdInput.value || Date.now().toString();
+                const existingItemIndex = menuItems.findIndex(item => item.id === id);
+                
+                if (existingItemIndex > -1) {
+                    menuItems[existingItemIndex] = { id, name, price, description, imageUrl };
+                } else {
+                    menuItems.push({ id, name, price, description, imageUrl });
+                }
+                saveMenuItems();
+                resetItemForm();
+            }
+
+            cancelEditBtn.addEventListener('click', resetItemForm);
+            
+            // New: Payment Providers Logic
+            function renderPaymentProviders() {
+                const lang = localStorage.getItem('appLanguage') || 'en';
+                paymentProvidersContainer.innerHTML = '';
+                providersList.innerHTML = '';
+
+                if (providers.length === 0) {
+                    noProvidersMessage.style.display = 'block';
+                    noProvidersMessage.textContent = translations[lang].noProvidersMessage;
+                    paymentProvidersContainer.innerHTML = `<p class="text-gray-400 text-center">${translations[lang].noProvidersMessage}</p>`;
+                    return;
+                }
+                noProvidersMessage.style.display = 'none';
+
+                // Render for customer-facing order page
+                providers.forEach(provider => {
+                    const providerBtn = document.createElement('button');
+                    providerBtn.textContent = `${translations[lang].copyButton || 'Copy'} ${provider.name} ${translations[lang].address || 'Address'}`;
+                    providerBtn.classList.add('payment-link', 'py-3', 'px-6');
+                    providerBtn.dataset.link = provider.link;
+                    providerBtn.addEventListener('click', async (event) => {
+                        const link = event.target.dataset.link;
+                        try {
+                            await navigator.clipboard.writeText(link);
+                            alert(`${provider.name} address copied to clipboard!`);
+                        } catch (err) {
+                            console.error('Failed to copy text: ', err);
+                            alert('Failed to copy address. Please try again.');
+                        }
+                    });
+                    paymentProvidersContainer.appendChild(providerBtn);
+                });
+                
+                // Render for admin dashboard
+                providers.forEach(provider => {
+                    const listItem = document.createElement('div');
+                    listItem.classList.add('bg-gray-700', 'p-3', 'rounded-lg', 'flex', 'items-center', 'justify-between', 'gap-4');
+                    listItem.innerHTML = `
+                        <div class="flex-1">
+                            <p class="font-bold text-yellow-300">${provider.name}</p>
+                            <span class="text-sm text-gray-400 break-all">${provider.link}</span>
+                        </div>
+                        <button data-id="${provider.id}" class="delete-provider-btn text-red-400 hover:text-red-500 transition-colors"><i class="fas fa-trash-alt"></i></button>
+                    `;
+                    providersList.appendChild(listItem);
+                });
+
+                document.querySelectorAll('.delete-provider-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const providerId = event.target.closest('button').dataset.id;
+                        deleteProvider(providerId);
+                    });
+                });
+            }
+
+            function deleteProvider(id) {
+                const lang = localStorage.getItem('appLanguage') || 'en';
+                if (confirm(translations[lang].confirmDeleteProvider || 'Are you sure you want to delete this payment provider?')) {
+                    providers = providers.filter(p => p.id !== id);
+                    saveProviders();
+                }
+            }
+
+            addProviderBtn.addEventListener('click', () => {
+                const lang = localStorage.getItem('appLanguage') || 'en';
+                const name = providerNameInput.value.trim();
+                const link = providerLinkInput.value.trim();
+
+                if (name && link) {
+                    if (providers.length < 50) {
+                        const newProvider = { id: Date.now().toString(), name, link };
+                        providers.push(newProvider);
+                        saveProviders();
+                        providerNameInput.value = '';
+                        providerLinkInput.value = '';
+                        providerFormMessage.classList.add('hidden');
+                    } else {
+                        providerFormMessage.textContent = "You have reached the maximum of 50 payment providers.";
+                        providerFormMessage.classList.remove('hidden');
+                    }
+                } else {
+                    providerFormMessage.textContent = translations[lang].fillProviderFieldsMessage;
+                    providerFormMessage.classList.remove('hidden');
+                }
+            });
+
+            // Event Listeners
+            showKioskBtn.addEventListener('click', () => {
+                showPage('food-kiosk-page');
+            });
+            
+            showAdminBtn.addEventListener('click', () => {
+                showPage('admin-dashboard-page');
+            });
+
+            backToStartKioskBtn.addEventListener('click', () => {
+                showPage('start-page');
+            });
+
+            backToStartAdminBtn.addEventListener('click', () => {
+                showPage('start-page');
+            });
+
+            adminLoginSubmitBtn.addEventListener('click', () => {
+                const lang = localStorage.getItem('appLanguage') || 'en';
+                if (adminPinInput.value === ADMIN_PIN) {
+                    document.getElementById('admin-login-section').classList.add('hidden');
+                    adminDashboardContent.classList.remove('hidden');
+                    renderAdminOrders();
+                    renderAdminMenuItems();
+                    loadProviders();
+                    // Load and set admin text inputs
+                    storeTitleInput.value = localStorage.getItem('storeTitle') || "";
+                    storeTaglineInput.value = localStorage.getItem('storeTagline') || "";
+                    menuTitleInput.value = localStorage.getItem('menuTitle') || "";
+                } else {
+                    adminLoginMessage.textContent = translations[lang].incorrectPinMessage;
+                    adminLoginMessage.classList.remove('hidden');
+                }
+            });
+            
+            // New: Complete Order button
+            completeOrderBtn.addEventListener('click', () => {
+                if (currentOrder.length > 0) {
+                    const total = currentOrder.reduce((sum, item) => sum + item.price * item.quantity, 0);
+                    const orderId = Date.now();
+                    orders.push({ orderId, items: currentOrder, total, status: 'pending', timestamp: new Date() });
+                    saveOrders();
+                    
+                    transactionNumberDisplay.textContent = orderId;
+                    transactionModal.style.display = "flex";
+                }
+            });
+
+            // New: Start New Order button
+            startNewOrderBtn.addEventListener('click', () => {
+                showPage('food-kiosk-page');
+            });
+
+
+            storeTitleInput.addEventListener('input', (e) => {
+                localStorage.setItem('storeTitle', e.target.value);
+                updateKioskText();
+            });
+
+            storeTaglineInput.addEventListener('input', (e) => {
+                localStorage.setItem('storeTagline', e.target.value);
+                updateKioskText();
+            });
+
+            menuTitleInput.addEventListener('input', (e) => {
+                localStorage.setItem('menuTitle', e.target.value);
+                updateKioskText();
+            });
+
+            clearOrdersBtn.addEventListener('click', () => {
+                confirmationModal.style.display = "flex";
+            });
+
+            confirmYesBtn.addEventListener('click', () => {
+                orders = [];
+                saveOrders();
+                confirmationModal.style.display = "none";
+            });
+
+            confirmNoBtn.addEventListener('click', () => {
+                confirmationModal.style.display = "none";
+            });
+
+            closeConfirmModal.addEventListener('click', () => {
+                confirmationModal.style.display = "none";
+            });
+
+            saveCompletedOrdersBtn.addEventListener('click', async () => {
+                const lang = localStorage.getItem('appLanguage') || 'en';
+                const completedOrders = orders.filter(o => o.status === 'completed');
+                if (completedOrders.length === 0) {
+                    alert(translations[lang].noCompletedOrdersMessage);
+                    return;
+                }
+                const completedOrdersText = completedOrders.map(order => {
+                    const items = order.items.map(item => `  - ${item.name} (x${item.quantity})`).join('\n');
+                    return `${translations[lang].orderLabel} #${order.orderId} - ${translations[lang].totalLabel} $${order.total.toFixed(2)}\n${translations[lang].itemsLabel}:\n${items}\n${translations[lang].timestampLabel}: ${new Date(order.timestamp).toLocaleString()}\n`;
+                }).join('\n' + '-'.repeat(30) + '\n');
+                
+                try {
+                    await navigator.clipboard.writeText(completedOrdersText);
+                    alert(translations[lang].clipboardSuccessMessage);
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                    alert(translations[lang].clipboardFailMessage);
+                }
+            });
+            
+            // New event listeners for the transaction modal
+            copyTransactionBtn.addEventListener('click', async () => {
+                const lang = localStorage.getItem('appLanguage') || 'en';
+                const transactionNumber = transactionNumberDisplay.textContent;
+                try {
+                    await navigator.clipboard.writeText(transactionNumber);
+                    alert(translations[lang].copyTransactionSuccess);
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                    alert(translations[lang].copyTransactionFail);
+                }
+            });
+            
+            closeTransactionModalBtn.addEventListener('click', () => {
+                transactionModal.style.display = "none";
+                currentOrder = [];
+                updateOrderList();
+                showPage('food-kiosk-page');
+            });
+            
+            // Language selector listeners
+            langSelectors.forEach(selector => {
+                selector.addEventListener('change', (event) => {
+                    setLanguage(event.target.value);
+                });
+            });
+
+            // Initial load
+            const savedLang = localStorage.getItem('appLanguage') || 'en';
+            setLanguage(savedLang);
+            langSelectors.forEach(selector => selector.value = savedLang);
+            updateKioskText();
+            loadMenuItems();
+            loadProviders();
+        });
+    </script>
+</body>
+</html>
+```
